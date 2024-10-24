@@ -9,6 +9,7 @@ Due to the presence of a sub-module, the repo should be cloned by using the foll
 ```
 git clone --recurse-submodules <repository_url>
 ```
+## Training phase
 
 
 ## Detection stage: YOLO
