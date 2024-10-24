@@ -1,5 +1,5 @@
 from ultralytics import YOLO
-hyhyhy
+
 # Load a model
 model = YOLO("yolo11n.pt")
 
