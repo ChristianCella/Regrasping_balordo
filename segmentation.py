@@ -196,7 +196,7 @@ DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 MODEL_CFG = "configs/sam2.1/sam2.1_hiera_l.yaml"
 IMAGE_PATH = "Images/Bottle13.png"
 CHECKPOINT_PATH = "segment_anything_2/checkpoints/sam2.1_hiera_large.pt"
-VERBOSE = True
+VERBOSE = False
 
 # check if paths exists
 if not os.path.exists(CHECKPOINT_PATH):
@@ -206,6 +206,8 @@ if not os.path.exists(IMAGE_PATH):
     raise ValueError(f"Image path {IMAGE_PATH} does not exist")
 
 #######################DUMMY DETCTION#######################
+# TODO: Capture image from camera
+
 image = cv2.imread(str(IMAGE_PATH))
 
 # Apply pre processing and rotation
@@ -305,7 +307,7 @@ if VERBOSE:
 # Save the final image
 cv2.imwrite('segmented_image.png', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
 
-print('Segmentation completed!')
+print('------------------Segmentation completed!------------------')
 
 # Convert mask to binary
 image_gr = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -335,7 +337,7 @@ for i, c in enumerate(contours):
     cv2.drawContours(image, contours, i, (0, 0, 255), 2)
 
     # Find the orientation of each shape through PCA
-    angle, eigenvectors, eigenvalues = getOrientation(c, image)
+    # angle, eigenvectors, eigenvalues = getOrientation(c, image)
 
 if VERBOSE: 
     # plot image with PCA directions
@@ -361,9 +363,15 @@ rect = cv2.minAreaRect(contours[0])           # ( center (x,y), (width, height),
 rect_box = cv2.boxPoints(rect)      # get the 4 corners of the rectangle, ordered clockwise
 rect_box = np.int64(rect_box)       # convert all coordinates to integers
 
-grip_x = (rect_box[0][0] + rect_box[1][0]) / 2
-grip_y = (rect_box[0][1] + rect_box[1][1]) / 2
-grip_yaw = angle
+grip_x = rect[0][0]
+grip_y = rect[0][1]
+grip_yaw = rect[2]
+
+print('-------------------GRIP INFO------------------------')
+print('Grip x: ', grip_x)
+print('Grip y: ', grip_y)
+print('Grip yaw: ', grip_yaw)
+print('-----------------------------------------------------')
 
 # plot the minimum bounding rectangle
 if VERBOSE:
@@ -393,7 +401,10 @@ if VERBOSE:
 # FIND CULO BOTTIGLIA
 # Find the angle of rotation of the minimum bounding rectangle
 angle = rect[2]
+
+print('-------------------ANGLE INFO------------------------')
 print('Angle of rotation: ', angle)
+print('-----------------------------------------------------')
 
 center_img = (image.shape[1] // 2, image.shape[0] // 2)
 translation_m = cv2.getRotationMatrix2D(center_img, 0, 1)
@@ -488,28 +499,19 @@ cv2.fillPoly(mask_left_box, [box_left], 255)
 mask_right_box = np.zeros(image.shape[:2], dtype=np.uint8)
 cv2.fillPoly(mask_right_box, [box_right], 255)
 
-fig, axs = plt.subplots(1, 2, figsize=(20, 10))
-axs[0].imshow(mask_left_box)
-axs[0].axis('off')
-axs[0].set_title('Check box left mask')
-axs[1].imshow(mask_right_box)
-axs[1].axis('off')
-axs[1].set_title('Check box right mask')
-plt.show()
+if VERBOSE:
+    fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+    axs[0].imshow(mask_left_box)
+    axs[0].axis('off')
+    axs[0].set_title('Check box left mask')
+    axs[1].imshow(mask_right_box)
+    axs[1].axis('off')
+    axs[1].set_title('Check box right mask')
+    plt.show()
 
 # Find the intersection between the mask and the left and right boxes
 intersection_left = cv2.bitwise_and(image, image, mask=mask_left_box)
 intersection_right = cv2.bitwise_and(image, image, mask=mask_right_box)
-
-if VERBOSE:
-    fig, axs = plt.subplots(1, 2, figsize=(20, 10))
-    axs[0].imshow(intersection_left)
-    axs[0].axis('off')
-    axs[0].set_title('Intersection left mask')
-    axs[1].imshow(intersection_right)
-    axs[1].axis('off')
-    axs[1].set_title('Intersection right mask')
-    plt.show()
 
 # Find which intersection has the most white pixels and paint in red the one with most pixels
 intersection_left_gr = cv2.cvtColor(intersection_left, cv2.COLOR_BGR2GRAY)
@@ -535,26 +537,23 @@ print('-----------------------------------------------------')
 
 if left_pixels > right_pixels:
     image[intersection_left_gr == 255] = [255, 0, 0]
-    print('Bottle culo is on the right side')
-
-    ref_point_x = np.max(box_left[:,0]) - np.min(box_left[:,0]) / 2
-    ref_point_y = np.max(box_left[:,1]) - np.min(box_left[:,1]) / 2
-    ref_point = (ref_point_x, ref_point_y)
-
-    # if VERBOSE:
-    #     # Draw the reference point
-    #     cv2.circle(image, (int(ref_point[0]), int(ref_point[1])), 5, (255, 0, 0), -1)
-else:
-    image[intersection_right_gr == 255] = [255, 0, 0]
     print('Bottle culo is on the left side')
 
-    ref_point_x = np.max(box_right[:,0]) - np.min(box_right[:,0]) / 2
-    ref_point_y = np.max(box_right[:,1]) - np.min(box_right[:,1]) / 2
-    ref_point = (ref_point_x, ref_point_y)
+    # Find the reference point, center of the left box
+    ref_point_x = center_img[0] + (np.max(box_left[:,0]) - np.min(box_left[:,0])) / 2
+    ref_point_y = center_img[1]
+    ref_point = np.array([(ref_point_x, ref_point_y)])
 
-    # if VERBOSE:erlay
-    #     # Draw the reference point
-    #     cv2.circle(image, (int(ref_point[0]), int(ref_point[1])), 5, (255, 0, 0), -1)
+else:
+    image[intersection_right_gr == 255] = [255, 0, 0]
+    print('Bottle culo is on the right side')
+
+    # Find the reference point, center of the right box
+    ref_point_x = center_img[0] + (np.max(box_right[:,0]) - np.min(box_right[:,0])) / 2
+    ref_point_y = center_img[1]
+    ref_point = np.array([(ref_point_x, ref_point_y)])
+
+VERBOSE = True
 
 if VERBOSE:
     plt.figure(figsize=(10, 10))
@@ -567,15 +566,38 @@ if VERBOSE:
 image, _ = rotate_image(image, -angle)
 
 # Tnslate into the original position
-translation_m_originin = translation_m
-translation_m_originin[0, 2] = delta_tx
-translation_m_originin[1, 2] = delta_ty
+translation_m_origin = translation_m
+translation_m_origin[0, 2] = delta_tx
+translation_m_origin[1, 2] = delta_ty
 
-image = cv2.warpAffine(image, translation_m_originin, (image.shape[1], image.shape[0]))
+image = cv2.warpAffine(image, translation_m_origin, (image.shape[1], image.shape[0]))
 
 if VERBOSE:
     plt.figure(figsize=(10, 10))
     plt.imshow(image)
     plt.axis('off')
     plt.title('Culo overlay')
+    plt.show()
+
+# Rotate the reference point back to the original orientation
+ref_point_rot = rotate_points(ref_point, -angle)
+
+# Trnaslate the reference point back to the original position
+ref_point_rot[0, 0] = ref_point_rot[0, 0] + delta_tx
+ref_point_rot[0, 1] = ref_point_rot[0, 1] + delta_ty
+
+VERBOSE = True
+
+if VERBOSE:
+    # Draw the reference point
+    cv2.circle(image, (int(ref_point_rot[0, 0]), int(ref_point_rot[0, 1])), 5, (0, 0, 255), -1)
+    cv2.circle(image, (int(grip_x), int(grip_y)), 5, (0, 0, 255), -1)
+
+    # Draw a line from the center of the image to the reference point
+    cv2.line(image, (int(grip_x), int(grip_y)), (int(ref_point_rot[0, 0]), int(ref_point_rot[0, 1])), (255, 100, 255), 2)
+
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('Reference point rotation')
     plt.show()
