@@ -2,6 +2,9 @@
 
 This is the best repo ever. NO DOUBTS ABOUT IT.
 
+## Branches
+There are 2 branches as of now.
+
 ## Explanation
 This repo is part of a more complex structure that aims at picking objects (bottles and cups) from a box and inserting them in specified supports.
 The secind step is the regrasping, that relies on a former detection and a latter segmentation of the objects extracted at the first step of the procedure.
