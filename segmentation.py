@@ -5,6 +5,7 @@ import cv2
 import supervision as sv
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 
 from YOLO_simple_demo import YOLO_detect
 
@@ -20,8 +21,19 @@ results = YOLO_detect(IMAGE_PATH)
 
 # Get the object detection results and save the bounding box coordinates
 box = results[0].boxes.to('cpu')
-box_coord = box.xyxyn.numpy() # shape: (n, 4) where n is the number of bounding boxes
-print(box_coord)
+box_coord = box.xyxy.numpy() # shape: (n, 4) where n is the number of bounding boxes
+
+# Generate input point as center of bounding box
+x = (box_coord[0][0] + box_coord[0][2]) / 2
+y = (box_coord[0][1] + box_coord[0][3]) / 2
+
+bbox_center = np.array([[x, y]])
+input_label = np.array([1]) # 1 for foreground, 0 for background
+
+print('-------------------DEBUG INFO------------------------')
+print('Box coordinates: ', box_coord)
+print('pixel coordinates for SAM model: ', bbox_center)
+print('-----------------------------------------------------')
 
 # Get model
 sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
@@ -33,12 +45,6 @@ mask_generator = SamAutomaticMaskGenerator(sam)
 image = cv2.imread(str(IMAGE_PATH))
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-# sv.plot_image(image)
-
-# Generate masks for the image using the mask generator
-# sam_result = mask_generator.generate(image_rgb)
-# print(sam_result[0].keys())
-
 # Initialize sam predictor
 predictor = SamPredictor(sam)
 predictor.set_image(image_rgb)
@@ -46,7 +52,7 @@ predictor.set_image(image_rgb)
 # Predict the mask for the bounding box
 masks, scores, logits = predictor.predict(
     box = box_coord,
-    multimask_output = False
+    multimask_output = True
 )
 
 # plot results
