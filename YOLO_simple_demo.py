@@ -26,6 +26,13 @@ if __name__ == "__main__":
     pred = YOLO_detect(image_path)
 
     for r in pred:
-        print(r.boxes.cls)
-        print(r.boxes)
-        
+        # print(r.boxes.cls)
+        # print(r.boxes)
+        box = r[0].boxes.to('cpu')
+        box_coord = box.xywhn.numpy() # normalized xywh coordinates for the bounding box: x_center, y_center, width, height
+        box_coord = box.xyxyn.numpy() # normalized xyxy coordinates for the bounding box: x1, y1, x2, y2
+        print('-----------------------------------------------------')
+        print(box_coord) 
+        print(type(box_coord), 'shape: ', box_coord.shape)
+        print('-----------------------------------------------------')
+    
