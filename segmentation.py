@@ -5,6 +5,8 @@ import cv2
 import supervision as sv
 import os
 
+from YOLO_simple_demo import YOLO_detect
+
 # Load the model and the weights for segmentation
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 MODEL_TYPE = "vit_h"
@@ -12,6 +14,13 @@ MODEL_TYPE = "vit_h"
 IMAGE_PATH = Path("Images/Bottle1.png")
 CHECKPOINT_PATH = Path("weights/sam_vit_h_4b8939.pth")
 print(CHECKPOINT_PATH, "; exist:", os.path.isfile(CHECKPOINT_PATH))
+
+#######################DUMMY DETCTION#######################
+results = YOLO_detect(IMAGE_PATH)
+###########################################################
+
+# Get the object detection results and save the forst bounding box coordinates
+results = results[0]
 
 # Save memory
 torch.cuda.empty_cache()
@@ -25,6 +34,8 @@ mask_generator = SamAutomaticMaskGenerator(sam)
 # Read the image and convert to rgb format
 image = cv2.imread(str(IMAGE_PATH))
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+sv.plot_image(image)
 
 # Generate masks for the image using the mask generator
 sam_result = mask_generator.generate(image_rgb)
