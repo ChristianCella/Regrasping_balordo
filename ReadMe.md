@@ -41,13 +41,15 @@ For the segmentation pipeline, the file ```segmentation.py``` uses SAM2, which c
 
 In the current version, SAM2 is installed locally, hence the file structure of the repo should be as follows:
 
+```
 ├── Images
 ├── segment_anything_2
 ├── segmentation.py
 ├── YOLO_simple_demo.py
 └── ..
+```
 
-TO achieve this structure, clone this repo 
+To achieve this structure, clone this repo 
 
 ```
 git clone https://github.com/ChristianCella/Regrasping_balordo.git
