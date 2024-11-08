@@ -6,3 +6,5 @@ segment_anything_2
 SAM1
 
 *.pt
+*.png
+*.jpg

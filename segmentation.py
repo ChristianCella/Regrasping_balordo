@@ -127,3 +127,56 @@ logits = logits[sorted_ind]
 
 # plot results
 show_masks(image, masks, scores, point_coords=input_point, input_labels=input_label, borders=True)
+
+# Turn the points outside the mask black
+mask = masks[0]
+mask = mask.astype(np.uint8)
+mask = cv2.resize(mask, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
+mask = mask.astype(np.bool)
+image[mask == False] = 0
+image[mask == True] = 255
+
+# Plot the final image
+plt.figure(figsize=(10, 10))
+plt.imshow(image)
+plt.axis('off')
+plt.show()
+
+# Save the final image
+cv2.imwrite('segmented_image.png', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+
+print('Segmentation completed!')
+
+# Convert mask to binary
+image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# plot imagewithout color
+plt.figure(figsize=(10, 10))
+plt.imshow(image)
+plt.axis('off')
+plt.show()
+
+# Apply thresholding to the mask
+# _, image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+# plot image
+# plt.figure(figsize=(10, 10))
+# plt.imshow(image)
+# plt.axis('off')
+# plt.show()
+
+# Find the principal directions of the mask
+contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+contour = contours[0]
+ellipse = cv2.fitEllipse(contour)
+
+# Plot the principal directions
+plt.figure(figsize=(10, 10))
+plt.imshow(image)
+plt.axis('off')
+plt.plot(ellipse[0][0], ellipse[0][1], 'ro')
+plt.plot(ellipse[0][0] + ellipse[1][0] * np.cos(ellipse[2] * np.pi / 180), ellipse[0][1] + ellipse[1][0] * np.sin(ellipse[2] * np.pi / 180), 'ro')
+plt.plot(ellipse[0][0] + ellipse[1][1] * np.cos((ellipse[2] + 90) * np.pi / 180), ellipse[0][1] + ellipse[1][1] * np.sin((ellipse[2] + 90) * np.pi / 180), 'ro')
+plt.show()
+
+print('Principal directions found!')
