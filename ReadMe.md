@@ -4,9 +4,19 @@ This is the best repo ever. NO DOUBTS ABOUT IT.
 
 ## Explanation
 This repo is part of a more complex structure that aims at picking objects (bottles and cups) from a box and inserting them in specified supports.
-The secind step is the regrasping, that relies on a former detection and a latter segmentation of the objects extracted at the first step of the procedure.
+The secind step is the regrasping, that relies on a former detection and a latter segmentation of the objects extracted at the first step of the procedure. 
 
 ## Useful links
+The most straightforward thing to do is to install the ```ultralytics``` package with:
+```
+pip install ultralytics
+```
+if you do not want to contribute to the development of YOLO. Otherwise, if you feel your contribution may be helpful for the community:
+```
+git clone https://github.com/ultralytics/ultralytics.git
+cd ultralytics
+pip install -e '.[dev]'
+```
 The link to the ```ultralytics``` repository for the detection stage is the following:
 
 - https://github.com/ultralytics/ultralytics?tab=readme-ov-file
