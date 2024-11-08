@@ -1,7 +1,7 @@
 from pathlib import Path
 from ultralytics import YOLO
 
-image_path = Path("Images/Bottle1.png")
+image_path = Path("Images/Bottle12.png")
 
 def YOLO_segment(image_path):
     # Load the model and the weights fro segmentation
@@ -14,9 +14,10 @@ def YOLO_segment(image_path):
 
 def YOLO_detect(image_path):
     # Load the model and the weights fro segmentation
-    model = YOLO('yolo11n.pt')
+    model = YOLO('yolov8s-world.pt')
 
     # Perform object detection on an image for class 39, bottle
+    # results = model.predict(image_path, classes=[39])
     results = model.predict(image_path, classes=[39])
     results[0].show()
     return results
