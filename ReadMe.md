@@ -25,5 +25,17 @@ The version of the python interpreter that surely works is 3.8.10, while more re
 pip install -r requirements.txt
 ``` 
 
+For the segmentation pipeline, the file ```segmentation.py``` uses SAM2, which can be installed here:
+
+- https://github.com/facebookresearch/sam2/tree/main
+
+in the current version, SAM2 is installed locally. The file structure of the repo should be as follows:
+
+├── Images
+├── segment_anything_2
+├── segmentation.py
+├── yoloxx.pt
+└── ..
+
 ## Detection
 The script ```main.py``` allows to perform a very simple deetection of (all) the objects appearing in an image. Some sample pictures are collected inside the folder ```Images```, and the instance of the YOLO model must be created after specifying the desired weights, that will be downloaded from the original repo and saved in the current directory as ```.pt``` files .
