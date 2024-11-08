@@ -1,5 +1,8 @@
+__pycache__
 venv
 wara
 weights
+segment_anything_2
+SAM1
+
 *.pt
-/__pycache__
