@@ -15,11 +15,12 @@ matplotlib.rc('ytick', labelsize = 15)
 verbose = 1 # if verbiage is 1, then print the results
 bottle_class_id = 39 # The class ID for bottles
 
-# Load the model and the weights
+# Load the model and the weights (do not push them on GitHub!!)
 model = YOLO('yolo11n.pt')
+#model = YOLO('yolov8x-worldv2.pt')
 
 # Define the image path
-image_path = Path("Images/Bottle10.png")
+image_path = Path("First_attempt_images\Bottle1.png")
 
 # Load the image
 image = cv2.imread(str(image_path))
