@@ -41,4 +41,4 @@ def segment_image(image_path):
     plt.show()
 
 # Example usage (try for example: Raw_images/Bottle/XY_plane/x_y_plane_1_Color.png)
-segment_image("Augmented_XY_bottles/aug_0_1056.png")
+segment_image("Attempt_folder/aug_0_2617.png")
