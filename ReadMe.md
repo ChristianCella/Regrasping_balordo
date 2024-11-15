@@ -29,4 +29,4 @@ pip install -r requirements.txt
 ``` 
 
 ## Detection
-The script ```main.py``` allows to perform a very simple deetection of (all) the objects appearing in an image. Some sample pictures are collected inside the folder ```Images```, and the instance of the YOLO model must be created after specifying the desired weights, that will be downloaded from the original repo and saved in the current directory as ```.pt``` files .
+The script ```main.py``` allows to perform a very simple detection of (all) the objects appearing in an image. Some sample pictures are collected inside the folder ```Images```, and the instance of the YOLO model must be created after specifying the desired weights, that will be downloaded from the original repo and saved in the current directory as ```.pt``` files .

@@ -20,7 +20,7 @@ model = YOLO('yolo11n.pt')
 #model = YOLO('yolov8x-worldv2.pt')
 
 # Define the image path
-image_path = Path("First_attempt_images\Bottle1.png")
+image_path = Path("Images_on_slider/Bottle1.png")
 
 # Load the image
 image = cv2.imread(str(image_path))

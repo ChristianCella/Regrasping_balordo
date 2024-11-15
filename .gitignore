@@ -2,3 +2,4 @@ venv
 wara
 weights
 *.pt
+FastSAM
