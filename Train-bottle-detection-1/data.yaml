@@ -1,0 +1,12 @@
+names:
+- bottle
+nc: 1
+roboflow:
+  license: CC BY 4.0
+  project: train-bottle-detection
+  url: https://universe.roboflow.com/christiancella22/train-bottle-detection/dataset/1
+  version: 1
+  workspace: christiancella22
+test: ../Train-bottle-detection-1/test/images
+train: ../Train-bottle-detection-1/train/images
+val: ../Train-bottle-detection-1/valid/images
