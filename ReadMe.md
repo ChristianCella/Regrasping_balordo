@@ -39,3 +39,21 @@ The version of the python interpreter that surely works is 3.8.10, while more re
 ```
 pip install -r requirements.txt
 ``` 
+
+
+## Verify to hav CUDA Installed
+To verify if CUDA is correctly installed, run the following line directly in the terminal:
+
+```
+python -c "import torch; print(f'Is CUDA available: {torch.cuda.is_available()}')"
+``` 
+
+If the output of this line is False, try to install the correct torch version by visiting the site at the following link https://pytorch.org/get-started/locally/. As an example, in my case, the command to run is the following:
+``` 
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+``` 
+If an error occurs, usually it is due to the fact that the path that Windows can handle by default should not have more than 260 characters; if more characters are needed, access the ```register editor``` at the following path: 
+``` 
+Computer\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem
+```
+At this point, access the variable called ```LongPathsEnabled```, doublt click on it and change it value from 0 to 1. 
