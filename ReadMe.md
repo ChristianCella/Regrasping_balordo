@@ -42,6 +42,8 @@ pip install -r requirements.txt
 
 
 ## Verify to hav CUDA Installed
+First of all, install CUDA by following the instructions at https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/.
+
 To verify if CUDA is correctly installed, run the following line directly in the terminal:
 
 ```
