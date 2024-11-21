@@ -19,6 +19,14 @@ The detection happens before the segmentation. In order to be as flexible as pos
 
 For the final step, some improvements in terms of relative path is still necessary.
 
+## Training
+The training has been performed following the pipeline described above. At the moment, 3 different training campaigns have been executed:
+- the first one (folder called ```train``` inside ```runs```) has been carried out with 200 epochs;
+- the second one (results stored in ```train2```) with 1000 epochs;
+the third one (```train3```) with just 100 epochs.
+
+Contrary to what expected at the beginning, the best training is the third, probably because the algorithm does not learn specific features of the images used in the training dataset, but learns the most generic ones. 
+
 ## Useful links
 The link to the ```ultralytics``` repository for the detection stage is the following:
 
@@ -41,7 +49,7 @@ pip install -r requirements.txt
 ``` 
 
 
-## Verify to hav CUDA Installed
+## Verify to have CUDA Installed
 First of all, install CUDA by following the instructions at https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/.
 
 To verify if CUDA is correctly installed, run the following line directly in the terminal:
