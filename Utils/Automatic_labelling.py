@@ -1,45 +1,67 @@
-# This code allows to take a dataset of images and create bounding boxes around the objects in the images. 
-# The code saves the images with the bounding boxes and also creates label files in YOLO format for the detected objects. 
-# The code can be used to create a labelled dataset for object detection tasks.
-# TODO: Implement a way to create 3 different folders: for training, validation and testing datasets.
-
 import os
+import random
 import cv2
-from PIL import Image
 from pathlib import Path
 from ultralytics import YOLO
 
+# Define constants
 IMAGE_FOLDER = str(Path("Images/Augmented_dataset"))
 OUTPUT_FOLDER = str(Path("Images/Labelled"))
 FIXED_LABEL = "bottle"
+SPLIT_RATIOS = {"train": 0.7, "valid": 0.2, "test": 0.1}
 
-# Create the model
+# Assign colors for each split (BGR format for OpenCV)
+SPLIT_COLORS = {
+    "train": (0, 255, 0),  # Green for train
+    "valid": (255, 0, 0),  # Blue for valid
+    "test": (0, 0, 255),   # Red for test
+}
+
+# Create output folders
+for split in SPLIT_RATIOS.keys():
+    os.makedirs(os.path.join(OUTPUT_FOLDER, split, "images"), exist_ok=True)
+    os.makedirs(os.path.join(OUTPUT_FOLDER, split, "labels"), exist_ok=True)
+
+# Create the YOLO model
 model = YOLO("yolov8n.pt")
 
-# Ensure output folders exist
-os.makedirs(os.path.join(OUTPUT_FOLDER, "images"), exist_ok=True)
-os.makedirs(os.path.join(OUTPUT_FOLDER, "labels"), exist_ok=True)
+# Get all image paths
+image_paths = list(Path(IMAGE_FOLDER).glob("*.jpg"))
 
-# Loop through images in the folder
-for image_path in Path(IMAGE_FOLDER).glob("*.jpg"):
+# Shuffle the images to randomize the splits
+random.shuffle(image_paths)
 
-    # Read image using OpenCV
-    img = cv2.imread(str(image_path))
-    img_height, img_width = img.shape[:2]
-    
-    # Run detection
-    results = model(image_path)
-    detections = results[0].boxes  # Access the first result's bounding boxes
-    
-    if len(detections) > 0:  # If any objects are detected
+# Calculate the split indices
+num_images = len(image_paths)
+train_end = int(SPLIT_RATIOS["train"] * num_images)
+valid_end = train_end + int(SPLIT_RATIOS["valid"] * num_images)
 
-        # Save image to the output folder
-        output_image_path = os.path.join(OUTPUT_FOLDER, "images", image_path.name)
+# Split the images into train, valid, and test sets
+splits = {
+    "train": image_paths[:train_end],
+    "valid": image_paths[train_end:valid_end],
+    "test": image_paths[valid_end:]
+}
+
+# Process and save the images
+for split, paths in splits.items():
+    for image_path in paths:
+        # Read image using OpenCV
+        img = cv2.imread(str(image_path))
+        img_height, img_width = img.shape[:2]
         
-        # Create label file
-        label_file = os.path.join(OUTPUT_FOLDER, "labels", f"{image_path.stem}.txt")
-
-        with open(label_file, "w") as f:
+        # Run YOLO detection
+        results = model(image_path)
+        detections = results[0].boxes  # Access the first result's bounding boxes
+        
+        # Define output paths
+        split_image_folder = os.path.join(OUTPUT_FOLDER, split, "images")
+        split_label_folder = os.path.join(OUTPUT_FOLDER, split, "labels")
+        output_image_path = os.path.join(split_image_folder, image_path.name)
+        label_file = os.path.join(split_label_folder, f"{image_path.stem}.txt")
+        
+        if len(detections) > 0:  # If any objects are detected
+            # Draw bounding boxes in the assigned color
             for box in detections:
                 # Extract YOLO outputs
                 x_min, y_min, x_max, y_max = map(int, box.xyxy[0].tolist())  # Bounding box coordinates
@@ -52,14 +74,16 @@ for image_path in Path(IMAGE_FOLDER).glob("*.jpg"):
                 width = (x_max - x_min) / img_width
                 height = (y_max - y_min) / img_height
                 
-                # Write to label file in YOLO format
-                f.write(f"0 {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n")
-                
-                # Draw the bounding box on the image (red color, thickness 2)
-                cv2.rectangle(img, (x_min, y_min), (x_max, y_max), (0, 0, 255), 2)
-                # Optionally, add the label
+                # Draw bounding box on the image
+                color = SPLIT_COLORS[split]  # Get the color for the current split
+                cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, 2)
+                # Optionally add label text
                 label = f"{class_id} {confidence:.2f}"
-                cv2.putText(img, label, (x_min, y_min - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                cv2.putText(img, label, (x_min, y_min - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                
+                # Write to label file in YOLO format
+                with open(label_file, "w") as f:
+                    f.write(f"0 {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n")
 
-        # Save the image with bounding boxes
-        cv2.imwrite(output_image_path, img)
+            # Save the image with bounding boxes
+            cv2.imwrite(output_image_path, img)
