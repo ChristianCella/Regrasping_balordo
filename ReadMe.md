@@ -3,7 +3,7 @@
 This is the best repo ever. NO DOUBTS ABOUT IT.
 
 ## Branches
-At the moemnt, aside from the master, there are two branches. This readme is meant for the one called ```dev_detection```.
+At the moemnt, aside from the master, there are two branches. This readme is meant for the one called ```dev_detection```. I added a new temporary branch to make modifications also for the becker.
 
 ## Explanation
 This repo is part of a more complex structure that aims at picking objects (bottles and beckers) from a box and inserting them in specified supports.
