@@ -5,7 +5,7 @@ from pathlib import Path
 from ultralytics import YOLO
 
 # Define constants
-IMAGE_FOLDER = str(Path("Images/Augmented_dataset"))
+IMAGE_FOLDER = str(Path("Images/Augmented_dataset_beckers"))
 OUTPUT_FOLDER = str(Path("Images/Labelled"))
 FIXED_LABEL = "bottle"
 SPLIT_RATIOS = {"train": 0.7, "valid": 0.2, "test": 0.1}
@@ -61,12 +61,24 @@ for split, paths in splits.items():
         label_file = os.path.join(split_label_folder, f"{image_path.stem}.txt")
         
         if len(detections) > 0:  # If any objects are detected
-            # Draw bounding boxes in the assigned color
+            # Find the bounding box with the largest area
+            largest_box = None
+            largest_area = 0
+            
             for box in detections:
                 # Extract YOLO outputs
                 x_min, y_min, x_max, y_max = map(int, box.xyxy[0].tolist())  # Bounding box coordinates
-                confidence = box.conf[0]                 # Confidence score
-                class_id = int(box.cls[0])               # Class ID
+                area = (x_max - x_min) * (y_max - y_min)
+                
+                if area > largest_area:
+                    largest_area = area
+                    largest_box = box
+
+            if largest_box:
+                # Extract coordinates for the largest box
+                x_min, y_min, x_max, y_max = map(int, largest_box.xyxy[0].tolist())
+                confidence = largest_box.conf[0]                 # Confidence score
+                class_id = int(largest_box.cls[0])               # Class ID
                 
                 # Normalize bounding box coordinates for YOLO format
                 x_center = ((x_min + x_max) / 2) / img_width
@@ -74,16 +86,16 @@ for split, paths in splits.items():
                 width = (x_max - x_min) / img_width
                 height = (y_max - y_min) / img_height
                 
-                # Draw bounding box on the image
-                color = SPLIT_COLORS[split]  # Get the color for the current split
-                cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, 2)
+                # Draw the largest bounding box on the image
+                #color = SPLIT_COLORS[split]  # Get the color for the current split
+                #cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, 2)
                 # Optionally add label text
-                label = f"{class_id} {confidence:.2f}"
-                cv2.putText(img, label, (x_min, y_min - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                #label = f"{class_id} {confidence:.2f}"
+                #cv2.putText(img, label, (x_min, y_min - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
                 
                 # Write to label file in YOLO format
                 with open(label_file, "w") as f:
                     f.write(f"0 {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n")
-
-            # Save the image with bounding boxes
+            
+            # Save the image with the bounding box
             cv2.imwrite(output_image_path, img)

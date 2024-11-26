@@ -19,4 +19,4 @@ if __name__ == '__main__':
 
     # Create an instance of the YOLO model
     model = YOLO("yolov8n.pt")
-    results = model.train(data = str(Path("WARA_bottles_detection-1/data.yaml")), epochs = 100, imgsz = 640, workers = 8, batch = 32, device = 0)
+    results = model.train(data = str(Path("Images\Labelled\data.yaml")), epochs = 100, imgsz = 640, workers = 8, batch = 32, device = 0)

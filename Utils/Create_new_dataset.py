@@ -13,10 +13,10 @@ from collections import Counter
 verbose = True
 
 # Directories
-input_images_dir = Path("Augmented_bottles")  # Folder containing all the images
-output_dir = Path("New_augmented_bottles")  # Folder to save final images
-backgrounds_dir = Path("Images_manipulation/Backgrounds")  # Folder with the images of the backgrounds
-temp_dir = Path("Images_manipulation/Temp")  # Temporary folder for background-removed images
+input_images_dir = Path("Images/Increase_number_beckers")  # Folder containing all the images
+output_dir = Path("Images/Augmented_dataset_beckers")  # Folder to save final images
+backgrounds_dir = Path("Images/Background_images")  # Folder with the images of the backgrounds
+temp_dir = Path("Images/Temp")  # Temporary folder for background-removed images
 
 # Checks on the paths
 if verbose:
@@ -64,7 +64,7 @@ for idx, input_file in enumerate(input_files):
     object_img = Image.open(temp_path).convert("RGB")
 
     # Create a binary mask
-    mask = Image.eval(object_img.split()[2], lambda px: 0 if px < 90 else 255).convert("L")
+    mask = Image.eval(object_img.split()[2], lambda px: 0 if px < 40 else 255).convert("L")
 
     # Select a random background, ensuring balance
     selected_background = min(background_files, key=lambda bg: background_counter[bg])

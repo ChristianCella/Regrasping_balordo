@@ -12,7 +12,7 @@ matplotlib.rcParams['font.family'] = 'STIXGeneral'
 matplotlib.rc('xtick', labelsize = 15)
 matplotlib.rc('ytick', labelsize = 15)
 
-image_path = Path("Augmented_bottles/aug_0_54.png")
+image_path = Path("Images/Increase_number_beckers/aug_0_69.png")
 
 # Load the image
 image = cv2.imread(str(image_path))
