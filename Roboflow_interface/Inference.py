@@ -5,5 +5,5 @@ from pathlib import Path
 
 
 model = YOLO(str(Path("runs/detect/train3/weights/best.pt")))
-image_path = Path("Images/Random_validation_images/20241118_154448.jpg")
-results = model.predict(str(image_path), imgsz = 640, conf = 0.3, save = True) 
+image_path = Path("Images/Random_validation_images/20241126_160032.jpg")
+results = model.predict(str(image_path), imgsz = 640, conf = 0.1, save = True) 
