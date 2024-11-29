@@ -1,0 +1,8 @@
+train: /Project/Regrasping_balordo_taffi/data/dataset_ready_YOLO/train
+val: /Project/Regrasping_balordo_taffi/data/dataset_ready_YOLO/val
+test: /Project/Regrasping_balordo_taffi/data/dataset_ready_YOLO/test
+nc: 2
+names: [
+  'becker',
+  'bottle',
+]

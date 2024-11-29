@@ -1,0 +1,12 @@
+names:
+- cup
+nc: 1
+roboflow:
+  license: CC BY 4.0
+  project: wara_bottles_detection
+  url: https://universe.roboflow.com/christiancella22/wara_bottles_detection/dataset/1
+  version: 1
+  workspace: christiancella22
+test: C:/Users/chris/OneDrive - Politecnico di Milano/Politecnico di Milano/PhD - dottorato/GitHub repositories Lenovo/Regrasping_balordo/Images/Labelled/test/images
+train: C:/Users/chris/OneDrive - Politecnico di Milano/Politecnico di Milano/PhD - dottorato/GitHub repositories Lenovo/Regrasping_balordo/Images/Labelled/train/images
+val: C:/Users/chris/OneDrive - Politecnico di Milano/Politecnico di Milano/PhD - dottorato/GitHub repositories Lenovo/Regrasping_balordo/Images/Labelled/valid/images
