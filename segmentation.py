@@ -56,6 +56,18 @@ def show_masks(image, masks, scores, point_coords=None, box_coords=None, input_l
         plt.axis('off')
         plt.show()
 
+def rotate_image(image, angle):
+    # Get the image dimensions
+    (h, w) = image.shape[:2]
+    # Calculate the center of the image
+    center = (w // 2, h // 2)
+    
+    # Perform the rotation
+    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+    rotated = cv2.warpAffine(image, M, (w, h))
+    
+    return rotated
+
 #############################################################################
 
 def getOrientation(pts, img):
@@ -122,6 +134,12 @@ if not os.path.exists(IMAGE_PATH):
     raise ValueError(f"Image path {IMAGE_PATH} does not exist")
 
 #######################DUMMY DETCTION#######################
+image = cv2.imread(str(IMAGE_PATH))
+image = rotate_image(image, 0)
+
+cv2.imwrite('rotated_image.png', image)
+
+IMAGE_PATH = 'rotated_image.png'
 results = YOLO_detect(IMAGE_PATH)
 ############################################################
 
@@ -135,7 +153,23 @@ y = (box_coord[0][1] + box_coord[0][3]) / 2
 bbox_center = np.array([[x, y]])
 
 input_point = bbox_center
+input_box = np.array(box_coord[0])
+
 input_label = np.array([1]) # Points are input to the model in (x,y) format and come with labels 1 (foreground point) or 0 (background point)
+
+# create a grid of points around the bounding box center
+delta = 20
+second_point = np.array([[x, y + delta]])
+third_point = np.array([[x + delta, y]])
+fourth_point = np.array([[x + delta, y + delta]])
+fifth_point = np.array([[x - delta, y]])
+sixth_point = np.array([[x, y - delta]])
+seventh_point = np.array([[x - delta, y - delta]])
+eigth_point = np.array([[x + delta, y - delta]])
+nineth_point = np.array([[x - delta, y + delta]])
+
+input_point = np.concatenate([input_point, second_point, third_point, fourth_point, fifth_point, sixth_point, seventh_point, eigth_point, nineth_point], axis=0)
+input_label = np.array([1, 1, 1, 1,1 ,1 ,1, 1, 1])
 
 print('-------------------DEBUG INFO------------------------')
 print('Box coordinates: ', box_coord)
@@ -167,7 +201,8 @@ print(predictor._features["image_embed"].shape, predictor._features["image_embed
 masks, scores, logits = predictor.predict(
     point_coords=input_point, 
     point_labels=input_label,
-    multimask_output = True
+    box=input_box[None, :],
+    multimask_output = False
 )
 
 # Sort the masks by score, in descending order
@@ -177,7 +212,7 @@ scores = scores[sorted_ind]
 logits = logits[sorted_ind]
 
 # plot results
-show_masks(image, masks, scores, point_coords=input_point, input_labels=input_label, borders=True)
+show_masks(image, masks, scores, point_coords=input_point, box_coords=input_box, input_labels=input_label, borders=True)
 
 # Turn the points outside the mask black
 mask = masks[0]
@@ -212,13 +247,6 @@ plt.show()
 # Apply thresholding to the mask
 # _, image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
 
-# plot image
-# plt.figure(figsize=(10, 10))
-# plt.imshow(image)
-# plt.axis('off')
-# plt.show()
-
-############# PCA ################
 # Find all the contours in the thresholded image
 contours, _ = cv2.findContours(image_gr, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
  
@@ -230,7 +258,8 @@ for i, c in enumerate(contours):
         continue
  
     # Draw each contour only for visualisation purposes
-    cv2.drawContours(image_gr, contours, i, (0, 0, 255), 2)
+    cv2.drawContours(image, contours, i, (0, 0, 255), 2)
+
     # Find the orientation of each shape through PCA
     getOrientation(c, image)
 
