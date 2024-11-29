@@ -4,13 +4,14 @@ import cv2
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from math import atan2, cos, sin, sqrt, pi
 
 from YOLO_simple_demo import YOLO_detect
 
 from segment_anything_2.sam2.build_sam import build_sam2
 from segment_anything_2.sam2.sam2_image_predictor import SAM2ImagePredictor
 
-########################## AUXILIARY FUNCTIONS ############################
+########################## UTILITY FUNCTIONS ############################
 np.random.seed(3)
 
 def show_mask(mask, ax, random_color=False, borders = True):
@@ -56,6 +57,56 @@ def show_masks(image, masks, scores, point_coords=None, box_coords=None, input_l
         plt.show()
 
 #############################################################################
+
+def getOrientation(pts, img):
+    
+    sz = len(pts)
+    data_pts = np.empty((sz, 2), dtype=np.float64)
+    for i in range(data_pts.shape[0]):
+        data_pts[i,0] = pts[i,0,0]
+        data_pts[i,1] = pts[i,0,1]
+ 
+    # Perform PCA analysis
+    mean = np.empty((0))
+    mean, eigenvectors, eigenvalues = cv2.PCACompute2(data_pts, mean)
+ 
+    # Store the center of the object
+    cntr = (int(mean[0,0]), int(mean[0,1]))
+    
+ 
+    
+    cv2.circle(img, cntr, 3, (255, 0, 255), 2)
+    p1 = (cntr[0] + 0.02 * eigenvectors[0,0] * eigenvalues[0,0], cntr[1] + 0.02 * eigenvectors[0,1] * eigenvalues[0,0])
+    p2 = (cntr[0] - 0.02 * eigenvectors[1,0] * eigenvalues[1,0], cntr[1] - 0.02 * eigenvectors[1,1] * eigenvalues[1,0])
+    drawAxis(img, cntr, p1, (0, 255, 0), 1)
+    drawAxis(img, cntr, p2, (255, 255, 0), 5)
+ 
+    angle = atan2(eigenvectors[0,1], eigenvectors[0,0]) # orientation in radians
+    
+ 
+    return angle
+
+def drawAxis(img, p_, q_, colour, scale):
+    p = list(p_)
+    q = list(q_)
+    
+    angle = atan2(p[1] - q[1], p[0] - q[0]) # angle in radians
+    hypotenuse = sqrt((p[1] - q[1]) * (p[1] - q[1]) + (p[0] - q[0]) * (p[0] - q[0]))
+ 
+    # Here we lengthen the arrow by a factor of scale
+    q[0] = p[0] - scale * hypotenuse * cos(angle)
+    q[1] = p[1] - scale * hypotenuse * sin(angle)
+    cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv2.LINE_AA)
+ 
+    # create the arrow hooks
+    p[0] = q[0] + 9 * cos(angle + pi / 4)
+    p[1] = q[1] + 9 * sin(angle + pi / 4)
+    cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv2.LINE_AA)
+ 
+    p[0] = q[0] + 9 * cos(angle - pi / 4)
+    p[1] = q[1] + 9 * sin(angle - pi / 4)
+    cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv2.LINE_AA)
+
 
 # Load the model and the weights for segmentation
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -140,6 +191,7 @@ image[mask == True] = 255
 plt.figure(figsize=(10, 10))
 plt.imshow(image)
 plt.axis('off')
+plt.title('Segmented image BW mask')
 plt.show()
 
 # Save the final image
@@ -148,12 +200,13 @@ cv2.imwrite('segmented_image.png', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
 print('Segmentation completed!')
 
 # Convert mask to binary
-image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+image_gr = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-# plot imagewithout color
+# plot image in grayscale
 plt.figure(figsize=(10, 10))
-plt.imshow(image)
+plt.imshow(image_gr, cmap='gray')
 plt.axis('off')
+plt.title('Grayscale image')
 plt.show()
 
 # Apply thresholding to the mask
@@ -165,18 +218,24 @@ plt.show()
 # plt.axis('off')
 # plt.show()
 
-# Find the principal directions of the mask
-contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-contour = contours[0]
-ellipse = cv2.fitEllipse(contour)
+############# PCA ################
+# Find all the contours in the thresholded image
+contours, _ = cv2.findContours(image_gr, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+ 
+for i, c in enumerate(contours):
+    # Calculate the area of each contour
+    area = cv2.contourArea(c)
+    # Ignore contours that are too small or too large
+    if area < 1e2 or 1e5 < area:
+        continue
+ 
+    # Draw each contour only for visualisation purposes
+    cv2.drawContours(image_gr, contours, i, (0, 0, 255), 2)
+    # Find the orientation of each shape through PCA
+    getOrientation(c, image)
 
-# Plot the principal directions
+# plot image
 plt.figure(figsize=(10, 10))
 plt.imshow(image)
 plt.axis('off')
-plt.plot(ellipse[0][0], ellipse[0][1], 'ro')
-plt.plot(ellipse[0][0] + ellipse[1][0] * np.cos(ellipse[2] * np.pi / 180), ellipse[0][1] + ellipse[1][0] * np.sin(ellipse[2] * np.pi / 180), 'ro')
-plt.plot(ellipse[0][0] + ellipse[1][1] * np.cos((ellipse[2] + 90) * np.pi / 180), ellipse[0][1] + ellipse[1][1] * np.sin((ellipse[2] + 90) * np.pi / 180), 'ro')
 plt.show()
-
-print('Principal directions found!')
