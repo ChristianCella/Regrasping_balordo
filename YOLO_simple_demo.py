@@ -17,8 +17,8 @@ def YOLO_detect(image_path):
     model = YOLO('yolov8s-world.pt')
 
     # Perform object detection on an image for class 39, bottle
-    # results = model.predict(image_path, classes=[39])
-    results = model.predict(image_path)
+    results = model.predict(image_path, classes=[39])
+    # results = model.predict(image_path)
     results[0].show()
     return results
 

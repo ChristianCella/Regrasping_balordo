@@ -85,7 +85,6 @@ def getOrientation(pts, img):
     # Store the center of the object
     cntr = (int(mean[0,0]), int(mean[0,1]))
     
- 
     
     cv2.circle(img, cntr, 3, (255, 0, 255), 2)
     p1 = (cntr[0] + 0.02 * eigenvectors[0,0] * eigenvalues[0,0], cntr[1] + 0.02 * eigenvectors[0,1] * eigenvalues[0,0])
@@ -96,7 +95,7 @@ def getOrientation(pts, img):
     angle = atan2(eigenvectors[0,1], eigenvectors[0,0]) # orientation in radians
     
  
-    return angle
+    return angle, eigenvectors, eigenvalues 
 
 def drawAxis(img, p_, q_, colour, scale):
     p = list(p_)
@@ -119,11 +118,42 @@ def drawAxis(img, p_, q_, colour, scale):
     p[1] = q[1] + 9 * sin(angle - pi / 4)
     cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv2.LINE_AA)
 
+def imagePreProcessing(image):
+    
+    # Convert the image to the LAB color space (Lightness, A, B)
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+
+    # Split the LAB image into separate channels (L, A, B)
+    l_channel, a_channel, b_channel = cv2.split(lab)
+
+    # Apply CLAHE to the L-channel to enhance contrast
+    clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(4,4))
+    l_channel = clahe.apply(l_channel)
+
+    # (Optional) Apply histogram equalization to further stretch contrast
+    l_channel = cv2.equalizeHist(l_channel)
+
+    # Merge the enhanced L-channel back with the original A and B channels
+    lab = cv2.merge((l_channel, a_channel, b_channel))
+
+    # Convert the LAB image back to the BGR color space
+    enhanced_image = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+    # (Optional) Further increase contrast using convertScaleAbs
+    alpha = 1.5  # Contrast control
+    beta = 0     # Brightness control
+    enhanced_image = cv2.convertScaleAbs(enhanced_image, alpha=alpha, beta=beta)
+
+    # (Optional) Apply Unsharp Masking for edge enhancement
+    blurred = cv2.GaussianBlur(enhanced_image, (0, 0), 3)
+    prep_image = cv2.addWeighted(enhanced_image, 1.5, blurred, -0.5, 0)
+
+    return prep_image
 
 # Load the model and the weights for segmentation
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 MODEL_CFG = "configs/sam2.1/sam2.1_hiera_l.yaml"
-IMAGE_PATH = "Images/Bottle1.png"
+IMAGE_PATH = "Images/Bottle13.png"
 CHECKPOINT_PATH = "segment_anything_2/checkpoints/sam2.1_hiera_large.pt"
 
 # check if paths exists
@@ -135,7 +165,12 @@ if not os.path.exists(IMAGE_PATH):
 
 #######################DUMMY DETCTION#######################
 image = cv2.imread(str(IMAGE_PATH))
-image = rotate_image(image, 0)
+
+# Apply pre processing and rotation
+ang = 180
+
+image = imagePreProcessing(image)
+image = rotate_image(image, ang)
 
 cv2.imwrite('rotated_image.png', image)
 
@@ -261,10 +296,80 @@ for i, c in enumerate(contours):
     cv2.drawContours(image, contours, i, (0, 0, 255), 2)
 
     # Find the orientation of each shape through PCA
-    getOrientation(c, image)
+    angle, eigenvectors, eigenvalues = getOrientation(c, image)
 
-# plot image
+# plot image with PCA directions
 plt.figure(figsize=(10, 10))
 plt.imshow(image)
 plt.axis('off')
 plt.show()
+
+# find the convex hull of the contour
+hull = cv2.convexHull(c)
+
+# plot the convex hull
+plt.figure(figsize=(10, 10))
+plt.imshow(image)
+plt.plot(hull[:,0,0], hull[:,0,1], 'r', 3)
+plt.axis('off')
+plt.title('Convex hull')
+plt.show()
+
+'''# Find the bounding box of the contour
+x, y, w, h = cv2.boundingRect(c)
+cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+# plot the bounding box
+plt.figure(figsize=(10, 10))
+plt.imshow(image)
+plt.axis('off')
+plt.title('Bounding box')
+plt.show()'''
+
+# Find the axis-aligned minimum bounding rectangle of the contour
+rect = cv2.minAreaRect(c)           # ( center (x,y), (width, height), angle of rotation )
+rect_box = cv2.boxPoints(rect)      # get the 4 corners of the rectangle, ordered clockwise
+rect_box = np.int64(rect_box)       # convert all coordinates to integers
+
+# plot the minimum bounding rectangle
+cv2.drawContours(image,[rect_box],0,(0,255,255),2)
+
+# Find the center of the minimum bounding rectangle
+M = cv2.moments(c)
+cx = int(M['m10']/M['m00'])
+cy = int(M['m01']/M['m00'])
+
+# plot the center of the minimum bounding rectangle
+cv2.circle(image, (cx, cy), 5, (255, 0, 0), -1)
+
+# Show the image with the center of the minimum bounding rectangle
+plt.figure(figsize=(10, 10))
+plt.imshow(image)
+plt.axis('off')
+plt.title('Minimum bounding rectangle')
+plt.show()
+
+# Draw the indexes of the corners of the minimum bounding rectangle
+for i, (x, y) in enumerate(rect_box):
+    cv2.putText(image, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
+
+# Draw the major and minor axes of the minimum bounding rectangle
+cv2.line(image, (cx, cy), (cx + int(rect[1][0]/2 * cos(rect[2] * pi / 180)), cy + int(rect[1][0]/2 * sin(rect[2] * pi / 180))), (255, 0, 0), 2)
+cv2.line(image, (cx, cy), (cx - int(rect[1][1]/2 * sin(rect[2] * pi / 180)), cy + int(rect[1][1]/2 * cos(rect[2] * pi / 180))), (255, 0, 0), 2)
+
+cv2.line(image, (cx, cy), (cx + int(rect[1][1]/2 * sin(rect[2] * pi / 180)), cy - int(rect[1][1]/2 * cos(rect[2] * pi / 180))), (255, 0, 0), 2)
+cv2.line(image, (cx, cy), (cx - int(rect[1][0]/2 * cos(rect[2] * pi / 180)), cy - int(rect[1][0]/2 * sin(rect[2] * pi / 180))), (255, 0, 0), 2)
+
+# Show the image with the major and minor axes
+plt.figure(figsize=(10, 10))
+plt.imshow(image)
+plt.axis('off')
+plt.title('Major and minor axes')
+plt.show()
+
+
+
+
+
+
+
