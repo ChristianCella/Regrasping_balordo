@@ -5,14 +5,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 model = YOLO(str(Path("Training/train/weights/best.pt")))
-image_path = Path("Images/Random_validation_images/20241127_135349.jpg")
+image_path = Path("Images/Random_validation_images/20241128_100416.png")
 save_directory = Path("Images/Detection_results")
 
 # Inference
 results = model.predict(
     str(image_path), 
     imgsz = 640, 
-    conf = 0.6, 
+    conf = 0.55, 
     save = False) 
 
 # Result of the detection

@@ -7,7 +7,7 @@ from ultralytics import YOLO
 # Define constants
 IMAGE_FOLDER = str(Path("Images/Augmented_dataset_beckers"))
 OUTPUT_FOLDER = str(Path("Images/Labelled"))
-FIXED_LABEL = "bottle"
+#FIXED_LABEL = "becker"
 SPLIT_RATIOS = {"train": 0.7, "valid": 0.2, "test": 0.1}
 
 # Assign colors for each split (BGR format for OpenCV)

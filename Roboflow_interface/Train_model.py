@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     # Create an instance of the YOLO model and specify a custom directory
     model = YOLO("yolov8n.pt")
-    custom_dir = Path("Training")
+    custom_dir = Path("Training_on_plane")
 
     # In case of ubuntu (GPU GTX 1650 Ti => muc smaller computational capability)
     results = model.train(
