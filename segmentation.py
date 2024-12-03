@@ -63,10 +63,10 @@ def rotate_image(image, angle):
     center = (w // 2, h // 2)
     
     # Perform the rotation
-    M = cv2.getRotationMatrix2D(center, angle, 1.0)
-    rotated = cv2.warpAffine(image, M, (w, h))
+    mat = cv2.getRotationMatrix2D(center, angle, 1.0)
+    rotated = cv2.warpAffine(image, mat, (w, h))
     
-    return rotated
+    return rotated, mat
 
 #############################################################################
 
@@ -171,7 +171,7 @@ image = cv2.imread(str(IMAGE_PATH))
 ang = 180
 
 image = imagePreProcessing(image)
-image = rotate_image(image, ang)
+image, _ = rotate_image(image, ang)
 
 cv2.imwrite('rotated_image.png', image)
 
@@ -338,7 +338,7 @@ rect_box = cv2.boxPoints(rect)      # get the 4 corners of the rectangle, ordere
 rect_box = np.int64(rect_box)       # convert all coordinates to integers
 
 # plot the minimum bounding rectangle
-cv2.drawContours(image,[rect_box],0,(0,255,255),2)
+# cv2.drawContours(image,[rect_box],0,(0,255,255),2)
 
 # Find the center of the minimum bounding rectangle
 M = cv2.moments(contours[0])
@@ -365,29 +365,52 @@ for i, (x, y) in enumerate(rect_box):
 angle = rect[2]
 print('Angle of rotation: ', angle)
 
+center_img = (image.shape[1] // 2, image.shape[0] // 2)
+translation_m = cv2.getRotationMatrix2D(center_img, 0, 1)
+
+translation_m[0, 2] = translation_m[0, 2] - (cx - center_img[0])
+translation_m[1, 2] = translation_m[1, 2] - (cy - center_img[1])
+
+image = cv2.warpAffine(image, translation_m, (image.shape[1], image.shape[0]))
+
+if VERBOSE:
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('Translated image')
+    plt.show()
+
 # Rotate the image to align the minimum bounding rectangle with the x-axis
-rotated_mask = rotate_image(image, angle)
+image, rot_mat = rotate_image(image, angle)
 
-# plot the rotated image
-plt.figure(figsize=(10, 10))
-plt.imshow(rotated_mask)
-plt.axis('off')
-plt.title('Rotated image')
-plt.show()
+if VERBOSE:
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('Rotated image')
+    plt.show()
 
-# rotate the rectangle box points
-rotated_box = cv2.boxPoints(rect)
-rotated_box = np.int64(cv2.transform(np.array([rotated_box]), cv2.getRotationMatrix2D(tuple(rect[0]), angle, 1))[0])
+# Rotate the vertices of the minimum bounding rectangle
+rotated_rect = np.array(rect_box)
 
-# plot the rotated rectangle
-cv2.drawContours(rotated_mask,[rotated_box],0,(255, 0, 0),2)
+# translate rotated_rect to the center of the image
+rotated_rect[:, 0] = rotated_rect[:, 0] - (cx - center_img[0])
+rotated_rect[:, 1] = rotated_rect[:, 1] - (cy - center_img[1])
 
-# plot the rotated image
-plt.figure(figsize=(10, 10))
-plt.imshow(rotated_mask)
-plt.axis('off')
-plt.title('Rotated image')
-plt.show()
+# Rotate rotated_rect to align the minimum bounding rectangle with the x-axis
+points_homogeneous = np.hstack([rotated_rect, np.ones((rotated_rect.shape[0], 1))])
+transformed_points = points_homogeneous @ rot_mat.T
+
+# draw circles at transformed points
+for x, y in transformed_points:
+    cv2.circle(image, (int(x), int(y)), 5, (0, 255, 0), -1)
+
+if VERBOSE:
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('Check rotated vertices 3')
+    plt.show() 
 
 '''# Draw the major and minor axes of the minimum bounding rectangle
 cv2.line(image, (cx, cy), (cx + int(rect[1][0]/2 * cos(rect[2] * pi / 180)), cy + int(rect[1][0]/2 * sin(rect[2] * pi / 180))), (255, 0, 0), 2)
@@ -401,10 +424,3 @@ plt.imshow(image)
 plt.axis('off')
 plt.title('Major and minor axes')
 plt.show()'''
-
-
-
-
-
-
-
