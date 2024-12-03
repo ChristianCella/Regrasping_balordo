@@ -155,6 +155,7 @@ DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 MODEL_CFG = "configs/sam2.1/sam2.1_hiera_l.yaml"
 IMAGE_PATH = "Images/Bottle13.png"
 CHECKPOINT_PATH = "segment_anything_2/checkpoints/sam2.1_hiera_large.pt"
+VERBOSE = False
 
 # check if paths exists
 if not os.path.exists(CHECKPOINT_PATH):
@@ -246,8 +247,9 @@ masks = masks[sorted_ind]
 scores = scores[sorted_ind]
 logits = logits[sorted_ind]
 
-# plot results
-show_masks(image, masks, scores, point_coords=input_point, box_coords=input_box, input_labels=input_label, borders=True)
+if VERBOSE:
+    # plot results
+    show_masks(image, masks, scores, point_coords=input_point, box_coords=input_box, input_labels=input_label, borders=True)
 
 # Turn the points outside the mask black
 mask = masks[0]
@@ -257,12 +259,13 @@ mask = mask.astype(np.bool)
 image[mask == False] = 0
 image[mask == True] = 255
 
-# Plot the final image
-plt.figure(figsize=(10, 10))
-plt.imshow(image)
-plt.axis('off')
-plt.title('Segmented image BW mask')
-plt.show()
+if VERBOSE:
+    # Plot the final image
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('Segmented image BW mask')
+    plt.show()
 
 # Save the final image
 cv2.imwrite('segmented_image.png', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
@@ -272,12 +275,13 @@ print('Segmentation completed!')
 # Convert mask to binary
 image_gr = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-# plot image in grayscale
-plt.figure(figsize=(10, 10))
-plt.imshow(image_gr, cmap='gray')
-plt.axis('off')
-plt.title('Grayscale image')
-plt.show()
+if VERBOSE: 
+    # plot image in grayscale
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image_gr, cmap='gray')
+    plt.axis('off')
+    plt.title('Grayscale image')
+    plt.show()
 
 # Apply thresholding to the mask
 # _, image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
@@ -298,22 +302,24 @@ for i, c in enumerate(contours):
     # Find the orientation of each shape through PCA
     angle, eigenvectors, eigenvalues = getOrientation(c, image)
 
-# plot image with PCA directions
-plt.figure(figsize=(10, 10))
-plt.imshow(image)
-plt.axis('off')
-plt.show()
+if VERBOSE: 
+    # plot image with PCA directions
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.show()
 
 # find the convex hull of the contour
-hull = cv2.convexHull(c)
+hull = cv2.convexHull(contours[0])
 
-# plot the convex hull
-plt.figure(figsize=(10, 10))
-plt.imshow(image)
-plt.plot(hull[:,0,0], hull[:,0,1], 'r', 3)
-plt.axis('off')
-plt.title('Convex hull')
-plt.show()
+if VERBOSE: 
+    # plot the convex hull
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.plot(hull[:,0,0], hull[:,0,1], 'r', 3)
+    plt.axis('off')
+    plt.title('Convex hull')
+    plt.show()
 
 '''# Find the bounding box of the contour
 x, y, w, h = cv2.boundingRect(c)
@@ -327,7 +333,7 @@ plt.title('Bounding box')
 plt.show()'''
 
 # Find the axis-aligned minimum bounding rectangle of the contour
-rect = cv2.minAreaRect(c)           # ( center (x,y), (width, height), angle of rotation )
+rect = cv2.minAreaRect(contours[0])           # ( center (x,y), (width, height), angle of rotation )
 rect_box = cv2.boxPoints(rect)      # get the 4 corners of the rectangle, ordered clockwise
 rect_box = np.int64(rect_box)       # convert all coordinates to integers
 
@@ -335,28 +341,57 @@ rect_box = np.int64(rect_box)       # convert all coordinates to integers
 cv2.drawContours(image,[rect_box],0,(0,255,255),2)
 
 # Find the center of the minimum bounding rectangle
-M = cv2.moments(c)
+M = cv2.moments(contours[0])
 cx = int(M['m10']/M['m00'])
 cy = int(M['m01']/M['m00'])
 
 # plot the center of the minimum bounding rectangle
 cv2.circle(image, (cx, cy), 5, (255, 0, 0), -1)
 
-# Show the image with the center of the minimum bounding rectangle
-plt.figure(figsize=(10, 10))
-plt.imshow(image)
-plt.axis('off')
-plt.title('Minimum bounding rectangle')
-plt.show()
+if VERBOSE: 
+    # Show the image with the center of the minimum bounding rectangle
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('Minimum bounding rectangle')
+    plt.show()
 
 # Draw the indexes of the corners of the minimum bounding rectangle
 for i, (x, y) in enumerate(rect_box):
     cv2.putText(image, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
 
-# Draw the major and minor axes of the minimum bounding rectangle
+# FIND CULO BOTTIGLIA
+# Find the angle of rotation of the minimum bounding rectangle
+angle = rect[2]
+print('Angle of rotation: ', angle)
+
+# Rotate the image to align the minimum bounding rectangle with the x-axis
+rotated_mask = rotate_image(image, angle)
+
+# plot the rotated image
+plt.figure(figsize=(10, 10))
+plt.imshow(rotated_mask)
+plt.axis('off')
+plt.title('Rotated image')
+plt.show()
+
+# rotate the rectangle box points
+rotated_box = cv2.boxPoints(rect)
+rotated_box = np.int64(cv2.transform(np.array([rotated_box]), cv2.getRotationMatrix2D(tuple(rect[0]), angle, 1))[0])
+
+# plot the rotated rectangle
+cv2.drawContours(rotated_mask,[rotated_box],0,(255, 0, 0),2)
+
+# plot the rotated image
+plt.figure(figsize=(10, 10))
+plt.imshow(rotated_mask)
+plt.axis('off')
+plt.title('Rotated image')
+plt.show()
+
+'''# Draw the major and minor axes of the minimum bounding rectangle
 cv2.line(image, (cx, cy), (cx + int(rect[1][0]/2 * cos(rect[2] * pi / 180)), cy + int(rect[1][0]/2 * sin(rect[2] * pi / 180))), (255, 0, 0), 2)
 cv2.line(image, (cx, cy), (cx - int(rect[1][1]/2 * sin(rect[2] * pi / 180)), cy + int(rect[1][1]/2 * cos(rect[2] * pi / 180))), (255, 0, 0), 2)
-
 cv2.line(image, (cx, cy), (cx + int(rect[1][1]/2 * sin(rect[2] * pi / 180)), cy - int(rect[1][1]/2 * cos(rect[2] * pi / 180))), (255, 0, 0), 2)
 cv2.line(image, (cx, cy), (cx - int(rect[1][0]/2 * cos(rect[2] * pi / 180)), cy - int(rect[1][0]/2 * sin(rect[2] * pi / 180))), (255, 0, 0), 2)
 
@@ -365,7 +400,7 @@ plt.figure(figsize=(10, 10))
 plt.imshow(image)
 plt.axis('off')
 plt.title('Major and minor axes')
-plt.show()
+plt.show()'''
 
 
 
