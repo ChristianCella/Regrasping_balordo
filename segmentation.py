@@ -412,6 +412,27 @@ if VERBOSE:
     plt.title('Check rotated vertices 3')
     plt.show() 
 
+#Find the maximum value of the x-coordinate of the transformed points
+max_x = np.max(transformed_points[:, 0])
+min_x = np.min(transformed_points[:, 0])
+max_y = np.max(transformed_points[:, 1])
+min_y = np.min(transformed_points[:, 1])
+
+x_split = min_x + (max_x - min_x)/2
+
+p_top = (x_split, min_y)
+p_bottom = (x_split, max_y)
+
+# Draw the line that splits the bottle in two
+cv2.line(image, (int(p_top[0]), int(p_top[1])), (int(p_bottom[0]), int(p_bottom[1])), (0, 255, 0), 2)
+
+if VERBOSE:
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('Check intermediate vertices')
+    plt.show() 
+
 '''# Draw the major and minor axes of the minimum bounding rectangle
 cv2.line(image, (cx, cy), (cx + int(rect[1][0]/2 * cos(rect[2] * pi / 180)), cy + int(rect[1][0]/2 * sin(rect[2] * pi / 180))), (255, 0, 0), 2)
 cv2.line(image, (cx, cy), (cx - int(rect[1][1]/2 * sin(rect[2] * pi / 180)), cy + int(rect[1][1]/2 * cos(rect[2] * pi / 180))), (255, 0, 0), 2)
