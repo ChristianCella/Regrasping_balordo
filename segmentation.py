@@ -321,34 +321,24 @@ if VERBOSE:
     plt.title('Convex hull')
     plt.show()
 
-'''# Find the bounding box of the contour
-x, y, w, h = cv2.boundingRect(c)
-cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-# plot the bounding box
-plt.figure(figsize=(10, 10))
-plt.imshow(image)
-plt.axis('off')
-plt.title('Bounding box')
-plt.show()'''
-
 # Find the axis-aligned minimum bounding rectangle of the contour
 rect = cv2.minAreaRect(contours[0])           # ( center (x,y), (width, height), angle of rotation )
 rect_box = cv2.boxPoints(rect)      # get the 4 corners of the rectangle, ordered clockwise
 rect_box = np.int64(rect_box)       # convert all coordinates to integers
 
 # plot the minimum bounding rectangle
-# cv2.drawContours(image,[rect_box],0,(0,255,255),2)
+if VERBOSE:
+    cv2.drawContours(image,[rect_box],0,(0,255,255),2)
 
 # Find the center of the minimum bounding rectangle
 M = cv2.moments(contours[0])
 cx = int(M['m10']/M['m00'])
 cy = int(M['m01']/M['m00'])
 
-# plot the center of the minimum bounding rectangle
-cv2.circle(image, (cx, cy), 5, (255, 0, 0), -1)
-
 if VERBOSE: 
+    # plot the center of the minimum bounding rectangle
+    cv2.circle(image, (cx, cy), 5, (255, 0, 0), -1)
+
     # Show the image with the center of the minimum bounding rectangle
     plt.figure(figsize=(10, 10))
     plt.imshow(image)
@@ -423,15 +413,61 @@ x_split = min_x + (max_x - min_x)/2
 p_top = (x_split, min_y)
 p_bottom = (x_split, max_y)
 
-# Draw the line that splits the bottle in two
-cv2.line(image, (int(p_top[0]), int(p_top[1])), (int(p_bottom[0]), int(p_bottom[1])), (0, 255, 0), 2)
-
 if VERBOSE:
+    # Draw the line that splits the bottle in two
+    cv2.line(image, (int(p_top[0]), int(p_top[1])), (int(p_bottom[0]), int(p_bottom[1])), (0, 255, 0), 2)
+
     plt.figure(figsize=(10, 10))
     plt.imshow(image)
     plt.axis('off')
     plt.title('Check intermediate vertices')
     plt.show() 
+
+# Find the points that are on the left and right side of the bottle
+box_left = [(min_x, min_y), (x_split, min_y), (x_split, max_y), (min_x, max_y)]
+box_right = [(x_split, min_y), (max_x, min_y), (max_x, max_y), (x_split, max_y)]
+
+box_left = np.int64(np.array(box_left))
+box_right = np.int64(np.array(box_right))
+
+# Draw the boxes
+cv2.drawContours(image, [np.array(box_left)], 0, (255, 255, 0), 2)
+cv2.drawContours(image, [np.array(box_right)], 0, (0, 255, 255), 2)
+
+plt.figure(figsize=(10, 10))
+plt.imshow(image)
+plt.axis('off')
+plt.title('Check intermediate rectangle halves')
+plt.show() 
+
+# Ensure the mask is of type CV_8U and has the same size as the image
+mask_left_box = np.zeros(image.shape[:2], dtype=np.uint8)
+cv2.fillPoly(mask_left_box, [box_left], 255)
+
+mask_right_box = np.zeros(image.shape[:2], dtype=np.uint8)
+cv2.fillPoly(mask_right_box, [box_right], 255)
+
+fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+axs[0].imshow(mask_left_box)
+axs[0].axis('off')
+axs[0].set_title('Check box left mask')
+axs[1].imshow(mask_right_box)
+axs[1].axis('off')
+axs[1].set_title('Check box right mask')
+plt.show()
+
+# Find the intersection between the mask and the left and right boxes
+intersection_left = cv2.bitwise_and(image, image, mask=mask_left_box)
+intersection_right = cv2.bitwise_and(image, image, mask=mask_right_box)
+
+fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+axs[0].imshow(intersection_left)
+axs[0].axis('off')
+axs[0].set_title('Intersection left mask')
+axs[1].imshow(intersection_right)
+axs[1].axis('off')
+axs[1].set_title('Intersection right mask')
+plt.show()
 
 '''# Draw the major and minor axes of the minimum bounding rectangle
 cv2.line(image, (cx, cy), (cx + int(rect[1][0]/2 * cos(rect[2] * pi / 180)), cy + int(rect[1][0]/2 * sin(rect[2] * pi / 180))), (255, 0, 0), 2)
