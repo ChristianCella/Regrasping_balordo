@@ -154,6 +154,43 @@ def imagePreProcessing(image):
 
     return prep_image
 
+def rototranslate_points(points, angle, center):
+    '''
+    Points must be a numpy array of shape (n, 2)
+    Apply a rotation of angle degrees around the center of the image
+    AL MOMENTNO NON FUNZIONA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    '''
+    angle = np.radians(angle)
+    rotation_matrix = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
+    points = points - center
+    points = points @ rotation_matrix.T
+    points = points + center
+    return points
+
+def rotate_points(points, angle):
+    '''
+    Points must be a numpy array of shape (n, 2)
+    Apply a rotation matrix to a set of points, with respect to the center of the image
+    '''
+    # if point is not a np.array, return error
+    if not isinstance(points, np.ndarray):
+        raise ValueError('Points must be a numpy array')
+    
+    # if point is not a np.array of dimension (n,2) return error
+    if points.shape[1] != 2:
+        raise ValueError('Points must be a numpy array of shape (n, 2)')
+    
+    # Get the image dimensions
+    (h, w) = image.shape[:2]
+    # Calculate the center of the image
+    center = (w // 2, h // 2)
+
+    mat = cv2.getRotationMatrix2D(center, angle, 1.0)
+    points_homogeneous = np.hstack([points, np.ones((points.shape[0], 1))])
+    rotated =  points_homogeneous @ mat.T
+
+    return rotated
+
 # Load the model and the weights for segmentation
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 MODEL_CFG = "configs/sam2.1/sam2.1_hiera_l.yaml"
@@ -386,16 +423,13 @@ if VERBOSE:
     plt.title('Rotated image')
     plt.show()
 
-# Rotate the vertices of the minimum bounding rectangle
-rotated_rect = np.array(rect_box)
-
 # translate rotated_rect to the center of the image
-rotated_rect[:, 0] = rotated_rect[:, 0] - (cx - center_img[0])
-rotated_rect[:, 1] = rotated_rect[:, 1] - (cy - center_img[1])
+translated_rect = np.array(rect_box)
+translated_rect[:, 0] = translated_rect[:, 0] - (delta_tx)
+translated_rect[:, 1] = translated_rect[:, 1] - (delta_ty)
 
 # Rotate rotated_rect to align the minimum bounding rectangle with the x-axis
-points_homogeneous = np.hstack([rotated_rect, np.ones((rotated_rect.shape[0], 1))])
-transformed_points = points_homogeneous @ rot_mat.T
+transformed_points = rotate_points(translated_rect, angle)
 
 # draw circles at transformed points
 for x, y in transformed_points:
