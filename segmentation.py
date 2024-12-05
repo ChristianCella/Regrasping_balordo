@@ -57,6 +57,10 @@ def show_masks(image, masks, scores, point_coords=None, box_coords=None, input_l
         plt.show()
 
 def rotate_image(image, angle):
+    '''
+    Rotate an image by a given angle in degrees
+    The image is rotated around its center
+    '''
     # Get the image dimensions
     (h, w) = image.shape[:2]
     # Calculate the center of the image
@@ -155,7 +159,7 @@ DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 MODEL_CFG = "configs/sam2.1/sam2.1_hiera_l.yaml"
 IMAGE_PATH = "Images/Bottle13.png"
 CHECKPOINT_PATH = "segment_anything_2/checkpoints/sam2.1_hiera_large.pt"
-VERBOSE = False
+VERBOSE = True
 
 # check if paths exists
 if not os.path.exists(CHECKPOINT_PATH):
@@ -215,12 +219,6 @@ print('-----------------------------------------------------')
 # Read the image and convert to rgb format
 image = cv2.imread(str(IMAGE_PATH))
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-# Plot image for debugging 
-# plt.figure(figsize=(10, 10))
-# plt.imshow(image)
-# plt.axis('on')
-# plt.show()
 
 # Load model and predictor
 sam2_model = build_sam2(MODEL_CFG, CHECKPOINT_PATH, device=DEVICE)
@@ -310,7 +308,7 @@ if VERBOSE:
     plt.show()
 
 # find the convex hull of the contour
-hull = cv2.convexHull(contours[0])
+'''hull = cv2.convexHull(contours[0])
 
 if VERBOSE: 
     # plot the convex hull
@@ -319,12 +317,16 @@ if VERBOSE:
     plt.plot(hull[:,0,0], hull[:,0,1], 'r', 3)
     plt.axis('off')
     plt.title('Convex hull')
-    plt.show()
+    plt.show()'''
 
 # Find the axis-aligned minimum bounding rectangle of the contour
 rect = cv2.minAreaRect(contours[0])           # ( center (x,y), (width, height), angle of rotation )
 rect_box = cv2.boxPoints(rect)      # get the 4 corners of the rectangle, ordered clockwise
 rect_box = np.int64(rect_box)       # convert all coordinates to integers
+
+grip_x = (rect_box[0][0] + rect_box[1][0]) / 2
+grip_y = (rect_box[0][1] + rect_box[1][1]) / 2
+grip_yaw = angle
 
 # plot the minimum bounding rectangle
 if VERBOSE:
@@ -347,8 +349,9 @@ if VERBOSE:
     plt.show()
 
 # Draw the indexes of the corners of the minimum bounding rectangle
-for i, (x, y) in enumerate(rect_box):
-    cv2.putText(image, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
+if VERBOSE:
+    for i, (x, y) in enumerate(rect_box):
+        cv2.putText(image, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
 
 # FIND CULO BOTTIGLIA
 # Find the angle of rotation of the minimum bounding rectangle
@@ -358,8 +361,11 @@ print('Angle of rotation: ', angle)
 center_img = (image.shape[1] // 2, image.shape[0] // 2)
 translation_m = cv2.getRotationMatrix2D(center_img, 0, 1)
 
-translation_m[0, 2] = translation_m[0, 2] - (cx - center_img[0])
-translation_m[1, 2] = translation_m[1, 2] - (cy - center_img[1])
+delta_tx = cx - center_img[0]
+delta_ty = cy - center_img[1]
+
+translation_m[0, 2] = translation_m[0, 2] - delta_tx
+translation_m[1, 2] = translation_m[1, 2] - delta_ty
 
 image = cv2.warpAffine(image, translation_m, (image.shape[1], image.shape[0]))
 
@@ -430,15 +436,16 @@ box_right = [(x_split, min_y), (max_x, min_y), (max_x, max_y), (x_split, max_y)]
 box_left = np.int64(np.array(box_left))
 box_right = np.int64(np.array(box_right))
 
+if VERBOSE:
 # Draw the boxes
-cv2.drawContours(image, [np.array(box_left)], 0, (255, 255, 0), 2)
-cv2.drawContours(image, [np.array(box_right)], 0, (0, 255, 255), 2)
+    cv2.drawContours(image, [np.array(box_left)], 0, (255, 255, 0), 2)
+    cv2.drawContours(image, [np.array(box_right)], 0, (0, 255, 255), 2)
 
-plt.figure(figsize=(10, 10))
-plt.imshow(image)
-plt.axis('off')
-plt.title('Check intermediate rectangle halves')
-plt.show() 
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('Check intermediate rectangle halves')
+    plt.show() 
 
 # Ensure the mask is of type CV_8U and has the same size as the image
 mask_left_box = np.zeros(image.shape[:2], dtype=np.uint8)
@@ -460,24 +467,81 @@ plt.show()
 intersection_left = cv2.bitwise_and(image, image, mask=mask_left_box)
 intersection_right = cv2.bitwise_and(image, image, mask=mask_right_box)
 
-fig, axs = plt.subplots(1, 2, figsize=(20, 10))
-axs[0].imshow(intersection_left)
-axs[0].axis('off')
-axs[0].set_title('Intersection left mask')
-axs[1].imshow(intersection_right)
-axs[1].axis('off')
-axs[1].set_title('Intersection right mask')
-plt.show()
+if VERBOSE:
+    fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+    axs[0].imshow(intersection_left)
+    axs[0].axis('off')
+    axs[0].set_title('Intersection left mask')
+    axs[1].imshow(intersection_right)
+    axs[1].axis('off')
+    axs[1].set_title('Intersection right mask')
+    plt.show()
 
-'''# Draw the major and minor axes of the minimum bounding rectangle
-cv2.line(image, (cx, cy), (cx + int(rect[1][0]/2 * cos(rect[2] * pi / 180)), cy + int(rect[1][0]/2 * sin(rect[2] * pi / 180))), (255, 0, 0), 2)
-cv2.line(image, (cx, cy), (cx - int(rect[1][1]/2 * sin(rect[2] * pi / 180)), cy + int(rect[1][1]/2 * cos(rect[2] * pi / 180))), (255, 0, 0), 2)
-cv2.line(image, (cx, cy), (cx + int(rect[1][1]/2 * sin(rect[2] * pi / 180)), cy - int(rect[1][1]/2 * cos(rect[2] * pi / 180))), (255, 0, 0), 2)
-cv2.line(image, (cx, cy), (cx - int(rect[1][0]/2 * cos(rect[2] * pi / 180)), cy - int(rect[1][0]/2 * sin(rect[2] * pi / 180))), (255, 0, 0), 2)
+# Find which intersection has the most white pixels and paint in red the one with most pixels
+intersection_left_gr = cv2.cvtColor(intersection_left, cv2.COLOR_BGR2GRAY)
+intersection_right_gr = cv2.cvtColor(intersection_right, cv2.COLOR_BGR2GRAY)
 
-# Show the image with the major and minor axes
-plt.figure(figsize=(10, 10))
-plt.imshow(image)
-plt.axis('off')
-plt.title('Major and minor axes')
-plt.show()'''
+if VERBOSE:
+    fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+    axs[0].imshow(intersection_left_gr)
+    axs[0].axis('off')
+    axs[0].set_title('Intersection left mask')
+    axs[1].imshow(intersection_right_gr)
+    axs[1].axis('off')
+    axs[1].set_title('Intersection right mask')
+    plt.show()
+
+left_pixels = cv2.countNonZero(intersection_left_gr)
+right_pixels = cv2.countNonZero(intersection_right_gr)
+
+print('-------------------DEBUG INFO------------------------')
+print('Left pixels: ', left_pixels)
+print('Right pixels: ', right_pixels)
+print('-----------------------------------------------------')
+
+if left_pixels > right_pixels:
+    image[intersection_left_gr == 255] = [255, 0, 0]
+    print('Bottle culo is on the right side')
+
+    ref_point_x = np.max(box_left[:,0]) - np.min(box_left[:,0]) / 2
+    ref_point_y = np.max(box_left[:,1]) - np.min(box_left[:,1]) / 2
+    ref_point = (ref_point_x, ref_point_y)
+
+    # if VERBOSE:
+    #     # Draw the reference point
+    #     cv2.circle(image, (int(ref_point[0]), int(ref_point[1])), 5, (255, 0, 0), -1)
+else:
+    image[intersection_right_gr == 255] = [255, 0, 0]
+    print('Bottle culo is on the left side')
+
+    ref_point_x = np.max(box_right[:,0]) - np.min(box_right[:,0]) / 2
+    ref_point_y = np.max(box_right[:,1]) - np.min(box_right[:,1]) / 2
+    ref_point = (ref_point_x, ref_point_y)
+
+    # if VERBOSE:erlay
+    #     # Draw the reference point
+    #     cv2.circle(image, (int(ref_point[0]), int(ref_point[1])), 5, (255, 0, 0), -1)
+
+if VERBOSE:
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('Check culo')
+    plt.show()
+
+# Rotate the image back to the original orientation
+image, _ = rotate_image(image, -angle)
+
+# Tnslate into the original position
+translation_m_originin = translation_m
+translation_m_originin[0, 2] = delta_tx
+translation_m_originin[1, 2] = delta_ty
+
+image = cv2.warpAffine(image, translation_m_originin, (image.shape[1], image.shape[0]))
+
+if VERBOSE:
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('Culo overlay')
+    plt.show()
