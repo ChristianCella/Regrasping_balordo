@@ -453,12 +453,27 @@ if VERBOSE:
     plt.title('Check rotated vertices 3')
     plt.show() 
 
-#Find the maximum value of the x-coordinate of the transformed points
 max_x = np.max(transformed_points[:, 0])
 min_x = np.min(transformed_points[:, 0])
 max_y = np.max(transformed_points[:, 1])
 min_y = np.min(transformed_points[:, 1])
 
+# Keep rotating the image until the bounding box is aligned horizontally
+while((max_x - min_x) < (max_y - min_y)):
+
+    delta_ang = 90 
+    image, rot_mat = rotate_image(image, delta_ang)
+    tmp_points = rotate_points(transformed_points, delta_ang)
+
+    angle = angle + delta_ang
+    transformed_points = tmp_points
+
+    max_x = np.max(transformed_points[:, 0])
+    min_x = np.min(transformed_points[:, 0])
+    max_y = np.max(transformed_points[:, 1])
+    min_y = np.min(transformed_points[:, 1])
+
+# Find the maximum value of the x-coordinate of the transformed points
 x_split = min_x + (max_x - min_x)/2
 
 p_top = (x_split, min_y)
